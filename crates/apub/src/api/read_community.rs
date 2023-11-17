@@ -47,11 +47,11 @@ pub async fn get_community(
   )
   .await
   .map_err(|e| {
-    tracing::warn!("Denying APub get_community for {:?}", comment_id);
+    tracing::warn!("Denying APub get_community for {:?}", community_id);
     e;
   })?;
   if filter {
-    tracing::warn!("Filtering APub get_community for {:?}", comment_id);
+    tracing::warn!("Filtering APub get_community for {:?}", community_id);
     return Err(LemmyErrorType::CouldntFindCommunity);
   }
 

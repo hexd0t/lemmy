@@ -11,9 +11,8 @@ use lemmy_db_schema::{
   utils::post_to_comment_sort_type,
 };
 use lemmy_db_views::{comment_view::CommentQuery, post_view::PostQuery, structs::LocalUserView};
-use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonView};
+use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType};
-use tracing::error;
 
 #[tracing::instrument(skip(context))]
 pub async fn read_person(
@@ -41,7 +40,7 @@ pub async fn read_person(
   .map_err(|e| {
     tracing::warn!(
       "Denying APub resolve_object for {:?} on {:?} / {:?}",
-      comment_id,
+      community_id,
       data.person_id,
       data.username
     );
@@ -81,7 +80,7 @@ pub async fn read_person(
   if filter {
     tracing::warn!(
       "Filtering APub read_person for {:?} on {:?}",
-      comment_id,
+      community_id,
       person_details_id
     );
     return Ok(Json(GetPersonDetailsResponse {
