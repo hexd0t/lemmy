@@ -25,7 +25,7 @@ pub async fn search(
 
   check_private_instance(&local_user_view, &local_site).map_err(|e| {
     tracing::warn!("Denying APub search for '{:?}'", data.q);
-    e;
+    e
   })?;
 
   let is_admin = local_user_view

@@ -40,7 +40,7 @@ pub async fn list_posts(
   .await
   .map_err(|e| {
     tracing::warn!("Denying APub list_posts for {:?}", community_id);
-    e;
+    e
   })?;
   if filter {
     tracing::warn!("Filtering APub list_posts for {:?}", community_id);

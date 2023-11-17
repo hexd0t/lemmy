@@ -25,7 +25,7 @@ pub async fn resolve_object(
   // we can just deny requests on semi-private instances as well
   check_private_instance(&local_user_view, &local_site).map_err(|e| {
     tracing::warn!("Denying APub resolve_object for '{:?}'", data.q);
-    e;
+    e
   })?;
   let person_id = local_user_view.map(|v| v.person.id);
   // If we get a valid personId back we can safely assume that the user is authenticated,

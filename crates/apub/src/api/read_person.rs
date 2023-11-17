@@ -44,7 +44,7 @@ pub async fn read_person(
       data.person_id,
       data.username
     );
-    e;
+    e
   })?;
 
   let person_details_id = match data.person_id {

@@ -48,7 +48,7 @@ pub async fn get_community(
   .await
   .map_err(|e| {
     tracing::warn!("Denying APub get_community for {:?}", community_id);
-    e;
+    e
   })?;
   if filter {
     tracing::warn!("Filtering APub get_community for {:?}", community_id);

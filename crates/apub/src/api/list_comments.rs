@@ -40,7 +40,7 @@ pub async fn list_comments(
   .await
   .map_err(|e| {
     tracing::warn!("Denying APub list_comments for {:?}", community_id);
-    e;
+    e
   })?;
 
   if filter {
