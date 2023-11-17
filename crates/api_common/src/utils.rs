@@ -323,10 +323,12 @@ pub async fn check_private_instance_filtered(
   if local_user_view.is_none() && local_site.private_instance {
     if local_site.federation_enabled {
       if let Some(community_filter) = community_id {
-        CommunityView::read(db_pool, community_filter, None, false)
-          .await
-          .map(|community_view| community_view.community.local)
-          .unwrap_or(true);
+        Ok(
+          CommunityView::read(db_pool, *community_filter, None, false)
+            .await
+            .map(|community_view| community_view.community.local)
+            .unwrap_or(true),
+        )
       } else {
         Ok(true)
       }
