@@ -39,11 +39,17 @@ pub async fn get_community(
     }
   };
 
-  let filter = check_private_instance_filtered(&local_user_view, &local_site, &community_id)
-    .map_err(|e| {
-      tracing::warn!("Denying APub get_community for {:?}", comment_id);
-      e;
-    })?;
+  let filter = check_private_instance_filtered(
+    &local_user_view,
+    &local_site,
+    &mut context.pool(),
+    &community_id,
+  )
+  .await
+  .map_err(|e| {
+    tracing::warn!("Denying APub get_community for {:?}", comment_id);
+    e;
+  })?;
   if filter {
     tracing::warn!("Filtering APub get_community for {:?}", comment_id);
     return Err(LemmyErrorType::CouldntFindCommunity);

@@ -314,15 +314,16 @@ pub fn check_private_instance(
 ///   i.e. the community is local or we don't know about the community (don't want to allow not found messages to leak info)
 /// - needs to be rejected completely (private instance)
 #[tracing::instrument(skip_all)]
-pub fn check_private_instance_filtered(
+pub async fn check_private_instance_filtered(
   local_user_view: &Option<LocalUserView>,
   local_site: &LocalSite,
+  db_pool: &mut DbPool<'_>,
   community_id: &Option<CommunityId>,
 ) -> Result<bool, LemmyError> {
   if local_user_view.is_none() && local_site.private_instance {
     if local_site.federation_enabled {
       if let Some(community_filter) = community_id {
-        CommunityView::read(&mut context.pool(), community_filter, None, false)
+        CommunityView::read(db_pool, community_filter, None, false)
           .await
           .map(|community_view| community_view.community.local)
           .unwrap_or(true);

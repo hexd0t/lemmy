@@ -31,11 +31,17 @@ pub async fn list_posts(
   } else {
     data.community_id
   };
-  let filter = check_private_instance_filtered(&local_user_view, &local_site, &community_id)
-    .map_err(|e| {
-      tracing::warn!("Denying APub list_posts for {:?}", community_id);
-      e;
-    })?;
+  let filter = check_private_instance_filtered(
+    &local_user_view,
+    &local_site,
+    &mut context.pool(),
+    &community_id,
+  )
+  .await
+  .map_err(|e| {
+    tracing::warn!("Denying APub list_posts for {:?}", community_id);
+    e;
+  })?;
   if filter {
     tracing::warn!("Filtering APub list_posts for {:?}", community_id);
     return Ok(Json(GetPostsResponse {

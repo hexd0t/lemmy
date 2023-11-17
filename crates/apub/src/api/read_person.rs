@@ -31,16 +31,22 @@ pub async fn read_person(
 
   // If we're semi-private (private with federation), filter the posts & comments to only specifically requested communities,
   // and don't let the remote party know if we know about a community locally
-  let filter = check_private_instance_filtered(&local_user_view, &local_site, &community_id)
-    .map_err(|e| {
-      tracing::warn!(
-        "Denying APub resolve_object for {:?} on {:?} / {:?}",
-        comment_id,
-        data.person_id,
-        data.username
-      );
-      e;
-    })?;
+  let filter = check_private_instance_filtered(
+    &local_user_view,
+    &local_site,
+    &mut context.pool(),
+    &community_id,
+  )
+  .await
+  .map_err(|e| {
+    tracing::warn!(
+      "Denying APub resolve_object for {:?} on {:?} / {:?}",
+      comment_id,
+      data.person_id,
+      data.username
+    );
+    e;
+  })?;
 
   let person_details_id = match data.person_id {
     Some(id) => id,

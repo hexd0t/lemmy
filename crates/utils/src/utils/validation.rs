@@ -260,22 +260,6 @@ pub fn clean_url_params(url: &Url) -> Url {
   url_out
 }
 
-pub fn check_site_visibility_valid(
-  current_private_instance: bool,
-  current_federation_enabled: bool,
-  new_private_instance: &Option<bool>,
-  new_federation_enabled: &Option<bool>,
-) -> LemmyResult<()> {
-  let private_instance = new_private_instance.unwrap_or(current_private_instance);
-  let federation_enabled = new_federation_enabled.unwrap_or(current_federation_enabled);
-
-  if private_instance && federation_enabled {
-    Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether.into())
-  } else {
-    Ok(())
-  }
-}
-
 pub fn check_url_scheme(url: &Option<Url>) -> LemmyResult<()> {
   if let Some(url) = url {
     if !ALLOWED_POST_URL_SCHEMES.contains(&url.scheme()) {
@@ -296,20 +280,10 @@ mod tests {
   use crate::{
     error::LemmyErrorType,
     utils::validation::{
-      build_and_check_regex,
-      check_site_visibility_valid,
-      check_url_scheme,
-      clean_url_params,
-      is_valid_actor_name,
-      is_valid_bio_field,
-      is_valid_display_name,
-      is_valid_matrix_id,
-      is_valid_post_title,
-      site_description_length_check,
-      site_name_length_check,
-      BIO_MAX_LENGTH,
-      SITE_DESCRIPTION_MAX_LENGTH,
-      SITE_NAME_MAX_LENGTH,
+      build_and_check_regex, check_url_scheme, clean_url_params, is_valid_actor_name,
+      is_valid_bio_field, is_valid_display_name, is_valid_matrix_id, is_valid_post_title,
+      site_description_length_check, site_name_length_check, BIO_MAX_LENGTH,
+      SITE_DESCRIPTION_MAX_LENGTH, SITE_NAME_MAX_LENGTH,
     },
   };
   use url::Url;
@@ -503,18 +477,6 @@ mod tests {
           expected_err
         );
       });
-  }
-
-  #[test]
-  fn test_check_site_visibility_valid() {
-    assert!(check_site_visibility_valid(true, true, &None, &None).is_err());
-    assert!(check_site_visibility_valid(true, false, &None, &Some(true)).is_err());
-    assert!(check_site_visibility_valid(false, true, &Some(true), &None).is_err());
-    assert!(check_site_visibility_valid(false, false, &Some(true), &Some(true)).is_err());
-    assert!(check_site_visibility_valid(true, false, &None, &None).is_ok());
-    assert!(check_site_visibility_valid(false, true, &None, &None).is_ok());
-    assert!(check_site_visibility_valid(false, false, &Some(true), &None).is_ok());
-    assert!(check_site_visibility_valid(false, false, &None, &Some(true)).is_ok());
   }
 
   #[test]
