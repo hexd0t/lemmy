@@ -119,14 +119,14 @@ pub async fn read_person(
   .await?;
 
   let moderates = if let Some(community_filter) = community_id {
-    CommunityModeratorView::for_person_and_community(
+    CommunityModeratorView::for_community_and_person(
       &mut context.pool(),
-      person_details_id,
       community_filter,
+      person_details_id,
     )
-    .await?;
+    .await?
   } else {
-    CommunityModeratorView::for_person(&mut context.pool(), person_details_id).await?;
+    CommunityModeratorView::for_person(&mut context.pool(), person_details_id).await?
   };
 
   // Return the jwt

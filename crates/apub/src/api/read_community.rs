@@ -43,7 +43,7 @@ pub async fn get_community(
     &local_user_view,
     &local_site,
     &mut context.pool(),
-    &community_id,
+    &Some(community_id),
   )
   .await
   .map_err(|e| {
@@ -52,7 +52,7 @@ pub async fn get_community(
   })?;
   if filter {
     tracing::warn!("Filtering APub get_community for {:?}", community_id);
-    return Err(LemmyErrorType::CouldntFindCommunity);
+    Err(LemmyErrorType::CouldntFindCommunity)?;
   }
 
   let is_mod_or_admin = is_mod_or_admin_opt(
