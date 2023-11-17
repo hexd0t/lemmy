@@ -1,6 +1,5 @@
 use crate::{
-  api::listing_type_with_default,
-  fetcher::resolve_actor_identifier,
+  api::listing_type_with_default, fetcher::resolve_actor_identifier,
   objects::community::ApubCommunity,
 };
 use activitypub_federation::config::Data;
@@ -8,7 +7,7 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   comment::{GetComments, GetCommentsResponse},
   context::LemmyContext,
-  utils::check_private_instance,
+  utils::check_private_instance_filtered,
 };
 use lemmy_db_schema::{
   source::{comment::Comment, community::Community, local_site::LocalSite},
@@ -24,14 +23,27 @@ pub async fn list_comments(
   local_user_view: Option<LocalUserView>,
 ) -> Result<Json<GetCommentsResponse>, LemmyError> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
-  check_private_instance(&local_user_view, &local_site)?;
 
+  // Todo(hexd0t): Check if the name resolution could be used to scrape private communities:
   let community_id = if let Some(name) = &data.community_name {
     Some(resolve_actor_identifier::<ApubCommunity, Community>(name, &context, &None, true).await?)
       .map(|c| c.id)
   } else {
     data.community_id
   };
+  let filter = check_private_instance_filtered(&local_user_view, &local_site, &community_id)
+    .map_err(|e| {
+      tracing::warn!("Denying APub list_comments for {:?}", community_id);
+      e;
+    })?;
+
+  if filter {
+    tracing::warn!("Filtering APub list_comments for {:?}", community_id);
+    return Ok(Json(GetCommentsResponse {
+      comments: Vec::with_capacity(0),
+    }));
+  }
+
   let sort = data.sort;
   let max_depth = data.max_depth;
   let saved_only = data.saved_only.unwrap_or_default();

@@ -14,9 +14,7 @@ impl CommunityModeratorView {
     find_person_id: PersonId,
   ) -> Result<bool, Error> {
     use lemmy_db_schema::schema::community_moderator::dsl::{
-      community_id,
-      community_moderator,
-      person_id,
+      community_id, community_moderator, person_id,
     };
     let conn = &mut get_conn(pool).await?;
     select(exists(
@@ -47,6 +45,24 @@ impl CommunityModeratorView {
     community_moderator::table
       .inner_join(community::table)
       .inner_join(person::table)
+      .filter(community_moderator::person_id.eq(person_id))
+      .filter(community::deleted.eq(false))
+      .filter(community::removed.eq(false))
+      .select((community::all_columns, person::all_columns))
+      .load::<CommunityModeratorView>(conn)
+      .await
+  }
+
+  pub async fn for_community_and_person(
+    pool: &mut DbPool<'_>,
+    community_id: CommunityId,
+    person_id: PersonId,
+  ) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    community_moderator::table
+      .inner_join(community::table)
+      .inner_join(person::table)
+      .filter(community_moderator::community_id.eq(community_id))
       .filter(community_moderator::person_id.eq(person_id))
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))

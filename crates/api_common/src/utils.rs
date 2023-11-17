@@ -26,9 +26,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
 use lemmy_db_views_actor::structs::{
-  CommunityModeratorView,
-  CommunityPersonBanView,
-  CommunityView,
+  CommunityModeratorView, CommunityPersonBanView, CommunityView,
 };
 use lemmy_utils::{
   email::{send_email, translations::Lang},
@@ -310,6 +308,35 @@ pub fn check_private_instance(
   }
 }
 
+/// Check if the requested information is
+/// - completely allowed (non-private instance, authenticated user or specific request on public info on semi-private instance)
+/// - needs to be filtered for information related to the requested community (only relevant for semi-private),
+///   i.e. the community is local or we don't know about the community (don't want to allow not found messages to leak info)
+/// - needs to be rejected completely (private instance)
+#[tracing::instrument(skip_all)]
+pub fn check_private_instance_filtered(
+  local_user_view: &Option<LocalUserView>,
+  local_site: &LocalSite,
+  community_id: &Option<CommunityId>,
+) -> Result<bool, LemmyError> {
+  if local_user_view.is_none() && local_site.private_instance {
+    if local_site.federation_enabled {
+      if let Some(community_filter) = community_id {
+        CommunityView::read(&mut context.pool(), community_filter, None, false)
+          .await
+          .map(|community_view| community_view.community.local)
+          .unwrap_or(true);
+      } else {
+        Ok(true)
+      }
+    } else {
+      Err(LemmyErrorType::InstanceIsPrivate)?
+    }
+  } else {
+    Ok(false)
+  }
+}
+
 #[tracing::instrument(skip_all)]
 pub async fn build_federated_instances(
   local_site: &LocalSite,
@@ -547,16 +574,6 @@ pub async fn send_new_report_email_to_admins(
     send_email(&subject, email, &admin.person.name, &body, settings).await?;
   }
   Ok(())
-}
-
-pub fn check_private_instance_and_federation_enabled(
-  local_site: &LocalSite,
-) -> Result<(), LemmyError> {
-  if local_site.private_instance && local_site.federation_enabled {
-    Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether)?
-  } else {
-    Ok(())
-  }
 }
 
 pub async fn purge_image_posts_for_person(

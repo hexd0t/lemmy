@@ -26,10 +26,7 @@ use lemmy_utils::{
   utils::{
     slurs::check_slurs_opt,
     validation::{
-      build_and_check_regex,
-      check_site_visibility_valid,
-      is_valid_body_field,
-      site_description_length_check,
+      build_and_check_regex, is_valid_body_field, site_description_length_check,
       site_name_length_check,
     },
   },
@@ -187,13 +184,6 @@ fn validate_update_payload(local_site: &LocalSite, edit_site: &EditSite) -> Lemm
   }
 
   site_default_post_listing_type_check(&edit_site.default_post_listing_type)?;
-
-  check_site_visibility_valid(
-    local_site.private_instance,
-    local_site.federation_enabled,
-    &edit_site.private_instance,
-    &edit_site.federation_enabled,
-  )?;
 
   // Ensure that the sidebar has fewer than the max num characters...
   is_valid_body_field(&edit_site.sidebar, false)?;

@@ -4,15 +4,16 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{GetPersonDetails, GetPersonDetailsResponse},
-  utils::check_private_instance,
+  utils::check_private_instance_filtered,
 };
 use lemmy_db_schema::{
   source::{local_site::LocalSite, person::Person},
   utils::post_to_comment_sort_type,
 };
 use lemmy_db_views::{comment_view::CommentQuery, post_view::PostQuery, structs::LocalUserView};
-use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonView};
+use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType};
+use tracing::error;
 
 #[tracing::instrument(skip(context))]
 pub async fn read_person(
@@ -26,8 +27,20 @@ pub async fn read_person(
   }
 
   let local_site = LocalSite::read(&mut context.pool()).await?;
+  let community_id = data.community_id;
 
-  check_private_instance(&local_user_view, &local_site)?;
+  // If we're semi-private (private with federation), filter the posts & comments to only specifically requested communities,
+  // and don't let the remote party know if we know about a community locally
+  let filter = check_private_instance_filtered(&local_user_view, &local_site, &community_id)
+    .map_err(|e| {
+      tracing::warn!(
+        "Denying APub resolve_object for {:?} on {:?} / {:?}",
+        comment_id,
+        data.person_id,
+        data.username
+      );
+      e;
+    })?;
 
   let person_details_id = match data.person_id {
     Some(id) => id,
@@ -51,7 +64,6 @@ pub async fn read_person(
   let page = data.page;
   let limit = data.limit;
   let saved_only = data.saved_only.unwrap_or_default();
-  let community_id = data.community_id;
   // If its saved only, you don't care what creator it was
   // Or, if its not saved, then you only want it for that specific creator
   let creator_id = if !saved_only {
@@ -60,6 +72,19 @@ pub async fn read_person(
     None
   };
 
+  if filter {
+    tracing::warn!(
+      "Filtering APub read_person for {:?} on {:?}",
+      comment_id,
+      person_details_id
+    );
+    return Ok(Json(GetPersonDetailsResponse {
+      person_view,
+      moderates: Vec::with_capacity(0),
+      comments: Vec::with_capacity(0),
+      posts: Vec::with_capacity(0),
+    }));
+  };
   let posts = PostQuery {
     sort,
     saved_only,
@@ -88,8 +113,16 @@ pub async fn read_person(
   .list(&mut context.pool())
   .await?;
 
-  let moderates =
+  let moderates = if let Some(community_filter) = community_id {
+    CommunityModeratorView::for_person_and_community(
+      &mut context.pool(),
+      person_details_id,
+      community_filter,
+    )
+    .await?;
+  } else {
     CommunityModeratorView::for_person(&mut context.pool(), person_details_id).await?;
+  };
 
   // Return the jwt
   Ok(Json(GetPersonDetailsResponse {

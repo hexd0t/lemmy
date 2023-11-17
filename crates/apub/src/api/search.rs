@@ -23,7 +23,10 @@ pub async fn search(
 ) -> Result<Json<SearchResponse>, LemmyError> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  check_private_instance(&local_user_view, &local_site)?;
+  check_private_instance(&local_user_view, &local_site).map_err(|e| {
+    tracing::warn!("Denying APub search for '{:?}'", data.q);
+    e;
+  })?;
 
   let is_admin = local_user_view
     .as_ref()

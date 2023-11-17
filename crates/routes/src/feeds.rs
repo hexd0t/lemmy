@@ -6,9 +6,7 @@ use lemmy_api_common::{context::LemmyContext, utils::check_private_instance};
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
-  CommentSortType,
-  ListingType,
-  SortType,
+  CommentSortType, ListingType, SortType,
 };
 use lemmy_db_views::{
   post_view::PostQuery,
@@ -26,11 +24,7 @@ use lemmy_utils::{
 };
 use once_cell::sync::Lazy;
 use rss::{
-  extension::dublincore::DublinCoreExtensionBuilder,
-  ChannelBuilder,
-  GuidBuilder,
-  Item,
-  ItemBuilder,
+  extension::dublincore::DublinCoreExtensionBuilder, ChannelBuilder, GuidBuilder, Item, ItemBuilder,
 };
 use serde::Deserialize;
 use std::{collections::BTreeMap, str::FromStr};
@@ -132,7 +126,10 @@ async fn get_feed_data(
 ) -> Result<HttpResponse, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
-  check_private_instance(&None, &site_view.local_site)?;
+  check_private_instance(&None, &site_view.local_site).map_err(|e| {
+    tracing::warn!("Denying feed request");
+    e
+  })?;
 
   let posts = PostQuery {
     listing_type: (Some(listing_type)),

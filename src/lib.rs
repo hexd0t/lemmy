@@ -8,8 +8,7 @@ pub mod session_middleware;
 pub mod telemetry;
 
 use crate::{
-  code_migrations::run_advanced_migrations,
-  root_span_builder::QuieterRootSpanBuilder,
+  code_migrations::run_advanced_migrations, root_span_builder::QuieterRootSpanBuilder,
   session_middleware::SessionMiddleware,
 };
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
@@ -18,10 +17,7 @@ use actix_web::{
   dev::{ServerHandle, ServiceResponse},
   middleware::{self, ErrorHandlerResponse, ErrorHandlers},
   web::Data,
-  App,
-  HttpResponse,
-  HttpServer,
-  Result,
+  App, HttpResponse, HttpServer, Result,
 };
 use clap::{ArgAction, Parser};
 use lemmy_api_common::{
@@ -29,16 +25,12 @@ use lemmy_api_common::{
   lemmy_db_views::structs::SiteView,
   request::client_builder,
   send_activity::{ActivityChannel, MATCH_OUTGOING_ACTIVITIES},
-  utils::{
-    check_private_instance_and_federation_enabled,
-    local_site_rate_limit_to_rate_limit_config,
-  },
+  utils::local_site_rate_limit_to_rate_limit_config,
 };
 use lemmy_apub::{
   activities::{handle_outgoing_activities, match_outgoing_activities},
   objects::instance::ApubSite,
-  VerifyUrlData,
-  FEDERATION_HTTP_FETCH_LIMIT,
+  VerifyUrlData, FEDERATION_HTTP_FETCH_LIMIT,
 };
 use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
 use lemmy_federate::{start_stop_federation_workers_cancellable, Opts};
@@ -133,8 +125,6 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
   if federation_enabled {
     println!("federation enabled, host is {}", &SETTINGS.hostname);
   }
-
-  check_private_instance_and_federation_enabled(&local_site)?;
 
   // Set up the rate limiter
   let rate_limit_config =

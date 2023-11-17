@@ -4,13 +4,10 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   community::{GetCommunity, GetCommunityResponse},
   context::LemmyContext,
-  utils::{check_private_instance, is_mod_or_admin_opt},
+  utils::{check_private_instance_filtered, is_mod_or_admin_opt},
 };
 use lemmy_db_schema::source::{
-  actor_language::CommunityLanguage,
-  community::Community,
-  local_site::LocalSite,
-  site::Site,
+  actor_language::CommunityLanguage, community::Community, local_site::LocalSite, site::Site,
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
@@ -28,10 +25,9 @@ pub async fn get_community(
     Err(LemmyErrorType::NoIdGiven)?
   }
 
-  check_private_instance(&local_user_view, &local_site)?;
-
   let person_id = local_user_view.as_ref().map(|u| u.person.id);
 
+  // Todo(hexd0t): Check if the name resolution could be used to scrape private communities:
   let community_id = match data.id {
     Some(id) => id,
     None => {
@@ -42,6 +38,16 @@ pub async fn get_community(
         .id
     }
   };
+
+  let filter = check_private_instance_filtered(&local_user_view, &local_site, &community_id)
+    .map_err(|e| {
+      tracing::warn!("Denying APub get_community for {:?}", comment_id);
+      e;
+    })?;
+  if filter {
+    tracing::warn!("Filtering APub get_community for {:?}", comment_id);
+    return Err(LemmyErrorType::CouldntFindCommunity);
+  }
 
   let is_mod_or_admin = is_mod_or_admin_opt(
     &mut context.pool(),
